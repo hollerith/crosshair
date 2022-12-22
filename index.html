@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Crossword Puzzle</title>
+    <script src="crossword.js"></script>
+  </head>
+  <body>
+    <div id="crossword-container"></div>
+    <ul id="clues"></ul>
+
+    <script>
+      function createCrossword() {
+        const crossword = new Crossword(10, 10, [
+          new Word("house", "A building for human habitation"),
+          new Word("car", "A road vehicle, typically with four wheels, powered by an internal combustion engine or an electric motor, and designed for the transportation of people or goods"),
+          new Word("tree", "A large woody plant with a single trunk, typically growing to a considerable height and having a crown of branches"),
+          new Word("dog", "A domesticated carnivorous mammal"),
+          new Word("computer", "An electronic device for storing and processing data, typically in binary form, according to instructions given to it in a variable program")
+        ]);
+
+        crossword.computeCrossword();
+
+        const container = document.getElementById("crossword-container");
+        for (const row of crossword.grid) {
+          const rowElement = document.createElement("div");
+          for (const cell of row) {
+            const cellElement = document.createElement("span");
+            cellElement.textContent = cell;
+            rowElement.appendChild(cellElement);
+          }
+          container.appendChild(rowElement);
+        }
+      }
+    
+      window.onload = function() {
+        createCrossword();
+      }
+    </script>
+  </body>
+</html>
