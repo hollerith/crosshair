@@ -1,190 +1,321 @@
-class Crossword {
-    constructor(cols, rows, available_words = []) {
-        this.cols = cols;
-        this.rows = rows;
-        this.empty = "-";
-        this.available_words = available_words;
-        this.randomizeWordList();
-        this.currentWordList = [];
-        this.debug = 0;
-        this.clearGrid();
-    }
-
-    clearGrid() {
-        this.grid = [];
-        for (let i = 0; i < this.rows; i++) {
-            const eaRow = [];
-            for (let j = 0; j < this.cols; j++) {
-                eaRow.push(this.empty);
-            }
-            this.grid.push(eaRow);
-        }
-    }
-
-    randomizeWordList() {
-        const tempList = [];
-        for (const word of this.available_words) {
-            if (word instanceof Word) {
-                tempList.push(new Word(word.word, word.clue));
-            } else {
-                tempList.push(new Word(word[0], word[1]));
-            }
-        }
-        tempList.sort(() => Math.random() - 0.5);
-        this.available_words = tempList;
-    }
-
-    computeCrossword(timeout = 5000) {
-        this.clearGrid();
-        this.current_word_list = [];
-        this.randomizeWordList();
-        const startTime = Date.now();
-        const result = this.dfs(0, startTime, timeout);
-        if (!result) {
-            console.log("Search timed out");
-        }
-    }
-
-    dfs(wordIndex, startTime, timeout) {
-        if (wordIndex === this.available_words.length) {
-            // All words have been placed, stop the search
-            return true;
-        }
-        if (Date.now() - startTime > timeout) {
-            // Time-out reached, stop the search
-            return false;
-        }
-
-        const word = this.available_words[wordIndex];
-        const coords = this.suggestCoord(word);
-        for (const coord of coords) {
-            if (this.checkFit(coord, word)) {
-                this.addWord(coord, word);
-                if (this.dfs(wordIndex + 1, startTime, timeout)) {
-                    // Solution found, stop the search
-                    return true;
-                }
-                this.removeWord(coord, word);
-            }
-        }
-        // No solution found, continue the search
-        return false;
-    }
-
-    suggestCoord(word) {
-        const coordList = [];
-        let givenLetterIndex = -1;
-        for (const givenLetter of word.word) {
-            givenLetterIndex += 1;
-            let rowIndex = 0;
-            for (const row of this.grid) {
-                rowIndex += 1;
-                let colIndex = 0;
-                for (const cell of row) {
-                    colIndex += 1;
-                    if (givenLetter === cell) {
-                        if (rowIndex - givenLetterIndex > 0) {
-                            if ((rowIndex - givenLetterIndex) + word.length <= this.rows) {
-                                coordList.push([
-                                    colIndex,
-                                    rowIndex - givenLetterIndex,
-                                    1,
-                                    colIndex + (rowIndex - givenLetterIndex),
-                                    0
-                                ]);
-                            }
-                        }
-                        if (colIndex - givenLetterIndex > 0) {
-                            if ((colIndex - givenLetterIndex) + word.length <= this.cols) {
-                                coordList.push([
-                                    colIndex - givenLetterIndex,
-                                    rowIndex,
-                                    0,
-                                    rowIndex + (colIndex - givenLetterIndex),
-                                    0
-                                ]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        const newCoordList = this.sortCoordList(coordList, word);
-        return newCoordList;
-    }
-
-    sortCoordList(coordList, word) {
-        const newCoordList = [];
-        for (const coord of coordList) {
-            let fits = 0;
-            let startx = coord[0];
-            let starty = coord[1];
-            const addx = coord[2];
-            const addy = coord[3];
-            let curx = startx;
-            let cury = starty;
-            for (const letter of word.word) {
-                if (this.grid[cury][curx] === letter || this.grid[cury][curx] === this.empty) {
-                    fits += 1;
-                }
-                curx += addx;
-                cury += addy;
-            }
-            newCoordList.push([coord[0], coord[1], fits]);
-        }
-        newCoordList.sort((a, b) => b[2] - a[2]);
-        return newCoordList;
-    }
-
-    fitAndAdd(word) {
-        const coordList = this.suggestCoord(word);
-        for (const coord of coordList) {
-            let fits = 0;
-            let startx = coord[0];
-            let starty = coord[1];
-            const addx = coord[2];
-            const addy = coord[3];
-            let curx = startx;
-            let cury = starty;
-            for (const letter of word.word) {
-                if (this.grid[cury][curx] === letter || this.grid[cury][curx] === this.empty) {
-                    fits += 1;
-                }
-                curx += addx;
-                cury += addy;
-            }
-            if (fits === word.length) {
-                curx = startx;
-                cury = starty;
-                for (const letter of word.word) {
-                    this.grid[cury][curx] = letter;
-                    curx += addx;
-                    cury += addy;
-                }
-                this.currentWordList.push(word);
-                break;
-            }
-        }
-    }
-
-    printClues() {
-        const container = document.createElement("ul");
-        document.body.appendChild(container);
-        let counter = 1;
-        for (const word of this.current_word_list) {
-            const item = document.createElement("li");
-            item.textContent = `${counter}. ${word.direction === 0 ? "Across: " : "Down: "}${word.clue}`;
-            container.appendChild(item);
-            counter++;
-        }
-    }
-
-}
-
 class Word {
     constructor(word, clue) {
         this.word = word;
         this.clue = clue;
         this.length = word.length;
+    }
+}
+
+class Crossword {
+    constructor(availableWords) {
+        this.grid = [];
+        this.gridSize = 16;
+        this.empty = "-";
+        this.availableWords = availableWords;
+        this.debug = false;
+
+        // Call createCrossword method when creating a new Crossword instance
+        this.createCrossword();
+    }
+
+    createGraph() {
+        // Create a map to store the graph
+        const graph = new Map();
+
+        // Iterate through the available words
+        for (const word of this.availableWords) {
+            // Add the word to the graph
+            graph.set(word, new Set());
+
+            // Find common letters with other words
+            for (const otherWord of this.availableWords) {
+                if (word === otherWord) continue;
+
+                const commonLetters = this.findCommonLetters(word.word, otherWord.word);
+
+                // If there are common letters, add an edge to the graph
+                if (commonLetters.length > 0) {
+                    graph.get(word).add([otherWord, commonLetters]);
+                }
+            }
+        }
+
+        return graph;
+    }
+
+
+    findCommonLetters(word1, word2) {
+        const commonLetters = [];
+
+        // Iterate through each letter in the first word
+        for (let i = 0; i < word1.length; i++) {
+            // Check if the letter appears in the second word
+            const index = word2.indexOf(word1[i]);
+            if (index !== -1) {
+                // If the letter appears, add the letter and its position in the second word to the list of common letters
+                commonLetters.push([i, index]);
+            }
+        }
+
+        return commonLetters;
+    }
+
+    createGrid() {
+        // Create an empty grid
+        this.grid = [];
+        for (let i = 0; i < this.gridSize; i++) {
+            this.grid.push(new Array(this.gridSize).fill(null));
+        }
+    }
+
+    createCrossword() {
+        // Create a graph of the words
+        this.graph = this.createGraph(this.availableWords);
+
+        this.createGrid();
+
+        // Place the first word in the grid
+        const firstWord = this.availableWords[0];
+        this.placeFirstWord(firstWord);
+        this.addWordsToGrid(firstWord);
+
+        this.render();
+        this.renderClues();
+    }
+
+    placeFirstWord(word) {
+        // Set the initial word on the grid in a random orientation
+        const orientation = Math.random() > 0.5 ? "horizontal" : "vertical";
+        word.x = 0;
+        word.y = 0;
+        word.orientation = orientation;
+
+        if (orientation === "horizontal") {
+            for (let i = 0; i < word.length; i++) {
+                this.grid[0][i] = word.word[i];
+            }
+        } else {
+            for (let i = 0; i < word.length; i++) {
+                this.grid[i][0] = word.word[i];
+            }
+        }
+        this.placedWords = [this.availableWords.shift()];
+        this.render()
+    }
+
+    addWordsToGrid(parent) {
+        // Get the edges of the parent node
+        const edges = [...this.graph.get(parent)].filter(word => this.availableWords.includes(word[0]));
+
+        // Process the edges
+        for (const edge of edges) {
+            // Place the word in the grid
+            if (this.placeNextWord(edge, parent)) {
+                // If the word was successfully placed in the grid, remove it from the list of available words
+                this.availableWords = this.availableWords.filter(availableWord => availableWord !== edge[0]);
+                this.placedWords.push(edge[0]);
+                this.render();
+                // Recurse with the placed edge as the new parent
+                this.addWordsToGrid(edge[0]);
+            }
+        }
+    }
+
+    placeNextWord(edge, parent) {
+        // Find a common letter that satisfies the placement criteria
+        const word = edge[0];
+        const orientation = parent.orientation === "horizontal" ? "vertical" : "horizontal";
+        let commonLetter = null;
+
+        // Check if the word has already been placed on the grid
+        if (this.placedWords.includes(word)) {
+            return false;
+        }
+
+        for (const [parentIndex, childIndex] of edge[1]) {
+            if (
+                (orientation === "vertical" && childIndex <= parent.x && parent.x + word.length - childIndex < this.gridSize) ||
+                (orientation === "horizontal" && childIndex <= parent.y && parent.x + word.length - childIndex < this.gridSize - childIndex)
+            ) {
+                commonLetter = [parentIndex, childIndex];
+                // If a valid common letter was found, place the edge word on the grid
+                if (commonLetter) {
+                    word.orientation = orientation;
+
+                    if (orientation === "vertical") {
+                        word.x = parent.x - childIndex;
+                        word.y = parent.y + parentIndex;
+
+                        // If there is a gap, place the word on the grid
+                        if (this.hasGap(word, word.x, word.y, orientation)) {
+                            for (let i = 0; i < word.length; i++) {
+                                this.grid[word.x + i][word.y] = word.word[i];
+                            }
+                            return true;
+                        }
+                    } else {
+                        word.x = parent.x + parentIndex;
+                        word.y = parent.y - childIndex;
+
+                        // If there is a gap, place the word on the grid
+                        if (this.hasGap(word, word.x, word.y, orientation)) {
+                            for (let i = 0; i < word.length; i++) {
+                                this.grid[word.x][word.y + i] = word.word[i];
+                            }
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    hasGap(word, x, y, orientation) {
+        let count = 1, score = 1;
+
+        for (const letter of word.word) {
+            const activeCell = this.grid[x][y];
+            if (activeCell !== null && activeCell !== letter) {
+                return 0;
+            }
+            if (activeCell === letter) {
+                score++;
+            }
+            if (orientation === "vertical") {
+                if (activeCell !== letter) {
+                    if (this.grid[x][y + 1] !== null) {
+                        return 0;
+                    }
+                    if (y > 0 && this.grid[x][y - 1] !== null) {
+                        return 0;
+                    }
+                }
+                if (count === 1) {
+                    if (x > 0 && this.grid[x - 1][y] !== null) {
+                        return 0;
+                    }
+                }
+                if (count === word.length) {
+                    if (this.grid[x + 1][y] !== null) {
+                        return 0;
+                    }
+                }
+                x++;
+            } else {
+                if (activeCell !== letter) {
+                    if (x > 0 && this.grid[x - 1][y] !== null) {
+                        return 0;
+                    }
+                    if (this.grid[x + 1][y] !== null) {
+                        return 0;
+                    }
+                }
+                if (count === 1) {
+                    if (y > 0 && this.grid[x][y - 1] !== null) {
+                        return 0;
+                    }
+                }
+                if (count === word.length) {
+                    if (this.grid[x][y + 1] !== null) {
+                        return 0;
+                    }
+                }
+                y++;
+            }
+            count++;
+        }
+        return score;
+    }
+
+    render() {
+        // Get the container element
+        const container = document.getElementById("crossword");
+
+        // Clear the container element
+        container.innerHTML = "";
+
+        // Iterate through each row of the grid
+        for (const row of this.grid) {
+            // Create a row element
+            const rowElement = document.createElement("div");
+            rowElement.classList.add("crossword-row");
+
+            // Iterate through each cell in the row
+            for (const cell of row) {
+                // Create a cell element
+                const cellElement = document.createElement("span");
+                cellElement.classList.add("crossword-cell");
+
+                // Set the cell content and style based on whether it is an empty cell or not
+                if (cell) {
+                    cellElement.textContent = cell;
+                } else {
+                    cellElement.style.backgroundColor = "black";
+                }
+
+                // Add the cell element to the row element
+                rowElement.appendChild(cellElement);
+            }
+
+            // Add the row element to the container element
+            container.appendChild(rowElement);
+        }
+    }
+
+    renderClues() {
+        // Create an empty list of clues
+        let clues = [];
+    
+        // Iterate through the placed words
+        for (const word of this.placedWords) {
+            // Add the clue to the list of clues
+            clues.push({
+                number: clues.length + 1,
+                clue: word.clue,
+                orientation: word.orientation === 'horizontal' ? 'across' : 'down',
+                answer: word.word
+            });
+        }
+    
+        // Sort the clues by orientation and number
+        clues.sort((a, b) => {
+            if (a.orientation === b.orientation) {
+                return a.number - b.number;
+            } else if (a.orientation === "across") {
+                return -1;
+            } else {
+                return 1;
+            }
+        });
+    
+        // Create an HTML element to hold the clues
+        const cluesElement = document.createElement("div");
+    
+        // Create a list of across clues
+        const acrossCluesList = document.createElement("ol");
+        acrossCluesList.classList.add("across-clues");
+        for (const clue of clues) {
+            if (clue.orientation === "across") {
+                const clueElement = document.createElement("li");
+                clueElement.innerHTML = `${clue.number}. ${clue.clue} <span class="answer">${clue.answer}</span>`;
+                acrossCluesList.appendChild(clueElement);
+            }
+        }
+        cluesElement.appendChild(acrossCluesList);
+    
+        // Create a list of down clues
+        const downCluesList = document.createElement("ol");
+        downCluesList.classList.add("down-clues");
+        for (const clue of clues) {
+            if (clue.orientation === "down") {
+                const clueElement = document.createElement("li");
+                clueElement.innerHTML = `${clue.number}. ${clue.clue} <span class="answer">${clue.answer}</span>`;
+                downCluesList.appendChild(clueElement);
+            }
+        }
+        cluesElement.appendChild(downCluesList);
+    
+        document.body.appendChild(cluesElement);
     }
 }
