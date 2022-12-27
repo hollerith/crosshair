@@ -2,14 +2,28 @@
 <html>
   <head>
     <title>Puzzle</title>
+    <link href="https://fonts.googleapis.com/css?family=Oxygen+Mono" rel="stylesheet" type="text/css">
     <script src="crossword.js"></script>
     <style>
+      body {
+        font-family: "Oxygen Mono", monospace;
+      }
+
+      #file-input, #delete-button {
+        display: inline-block;
+      }
+    
+      #crossword-container {
+        display: flex;
+        flex-direction: row;
+      }
+
       #crossword {
         width: 750px;
         height: 750px;
         display: flex;
         flex-wrap: wrap;
-        margin: 100px
+        margin: 50px
       }
       
       #crossword .crossword-row {
@@ -25,47 +39,25 @@
         align-items: center;
         justify-content: center;
       }      
+
+      /* styles for the clues element go here */
+      #clues {
+        margin: 50px
+      }
+
       .answer {
         display: none;
       }
     </style>
   </head>
   <body>
-    <div id="crossword"></div>
+    <button id="delete">Delete</button>
+    <label for="file-input">Import:</label>
+    <input type="file" id="file-input" name="file">    
+    <div id="crossword-container">
+      <div id="crossword"></div>
+      <div id="clues"></div>
+    </div>    
+    <script src="main.js"></script>
   </body>
-  <script>
-    const availableWords = [
-        new Word("desk", "A piece of furniture with a flat or sloping top, typically equipped with drawers, at which one can write or read while seated"),
-        new Word("chair", "A piece of furniture with a back and four legs, designed to seat one person"),
-        new Word("table", "A piece of furniture with a flat top and one or more legs, used for supporting objects"),
-        new Word("book", "A written or printed work consisting of pages bound together, containing written or printed matter"),
-        new Word("pen", "A writing instrument with a metal point and ink reservoir, used for writing or drawing on paper"),
-        new Word("paper", "Thin, flat material made from crushed wood or cloth, used for writing, printing, or drawing on"),
-        new Word("keyboard", "A panel of keys that operate a computer or typewriter"),
-        new Word("mouse", "A small device, typically held with the hand, that is moved on a flat surface to control the movement of a cursor on a computer screen"),
-        new Word("monitor", "A device that displays information, especially text and graphics, from a computer"),
-        new Word("printer", "A machine that prints text or illustrations onto paper"),
-        new Word("laptop", "A small, portable computer that can be used while being carried"),
-        new Word("phone", "A device used for communication, typically equipped with a transmitter and a receiver, that converts sound waves into electrical signals"),
-        new Word("television", "A device for reproducing and displaying moving images and sound"),
-        new Word("camera", "A device for taking photographs, using film or digital memory"),
-        new Word("speaker", "An electrical device that converts electrical signals into sound waves"),
-        new Word("microwave", "An electronic device that cooks or heats food by producing microwaves that penetrate the food and cause its molecules to vibrate"),
-        new Word("refrigerator", "An appliance or container for keeping food or drink cool, typically one having a coolant system and one or more compartments for storing food on shelves"),
-        new Word("oven", "A device, typically a box-shaped metal receptacle with a door, used for cooking food by means of dry heat or heat and moisture"),
-        new Word("toaster", "An electric device that toasts bread by heating the bread on both sides"),
-        new Word("blender", "A device for blending or grinding food, typically consisting of a container with a rotating metal blade at the base"),
-        new Word("kettle", "A container, typically made of metal, with a spout and handle, used for boiling water"),
-        new Word("dishwasher", "A device that washes dishes automatically, using water, detergent, and sometimes heat"),
-        new Word("house", "A building for human habitation"),
-        new Word("car", "A road vehicle, typically with four wheels, powered by an internal combustion engine or an electric motor, and designed for the transportation of people or goods"),
-        new Word("tree", "A large woody plant with a single trunk, typically growing to a considerable height and having a crown of branches"),
-        new Word("dog", "A domesticated carnivorous mammal"),
-        new Word("computer", "An electronic device for storing and processing data, typically in binary form, according to instructions given to it in a variable program")
-    ];
-
-    const bagOfWords = availableWords.sort((a, b) => b.word.length - a.word.length);
-    const crossword = new Crossword(bagOfWords);
-    
-  </script>
 </html>

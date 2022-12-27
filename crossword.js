@@ -296,8 +296,8 @@ class Crossword {
         let clues = this.clues;
     
         // Create an HTML element to hold the clues
-        const cluesElement = document.createElement("div");
-    
+        const cluesElement = document.getElementById("clues");
+            
         // Create a heading for the across clues
         const acrossHeading = document.createElement("h2");
         acrossHeading.innerText = "Across";
@@ -309,7 +309,7 @@ class Crossword {
         for (const clue of clues) {
             if (clue.orientation === "across") {
                 const clueElement = document.createElement("li");
-                clueElement.innerHTML = `${clue.answer.length}. ${clue.clue} <span class="answer">${clue.answer}</span>`;
+                clueElement.innerHTML = `${clue.clue} <span class="answer">${clue.answer}</span> (${clue.answer.length})`;
                 acrossCluesList.appendChild(clueElement);
             }
         }
@@ -326,12 +326,10 @@ class Crossword {
         for (const clue of clues) {
             if (clue.orientation === "down") {
                 const clueElement = document.createElement("li");
-                clueElement.innerHTML = `${clue.answer.length}. ${clue.clue} <span class="answer">${clue.answer}</span>`;
+                clueElement.innerHTML = `${clue.clue} <span class="answer">${clue.answer}</span> (${clue.answer.length})`;
                 downCluesList.appendChild(clueElement);
             }
         }
-        cluesElement.appendChild(downCluesList);
-    
-        document.body.appendChild(cluesElement);
+        cluesElement.appendChild(downCluesList);    
     }    
 }
