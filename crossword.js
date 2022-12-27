@@ -79,7 +79,9 @@ class Crossword {
         this.placeFirstWord(firstWord);
         this.addWordsToGrid(firstWord);
 
-        this.render();
+        this.renderGrid();
+
+        this.setClues();
         this.renderClues();
     }
 
@@ -100,7 +102,7 @@ class Crossword {
             }
         }
         this.placedWords = [this.availableWords.shift()];
-        this.render()
+        this.renderGrid()
     }
 
     addWordsToGrid(parent) {
@@ -114,7 +116,7 @@ class Crossword {
                 // If the word was successfully placed in the grid, remove it from the list of available words
                 this.availableWords = this.availableWords.filter(availableWord => availableWord !== edge[0]);
                 this.placedWords.push(edge[0]);
-                this.render();
+                this.renderGrid();
                 // Recurse with the placed edge as the new parent
                 this.addWordsToGrid(edge[0]);
             }
@@ -134,8 +136,8 @@ class Crossword {
 
         for (const [parentIndex, childIndex] of edge[1]) {
             if (
-                (orientation === "vertical" && childIndex <= parent.x && parent.x + word.length - childIndex < this.gridSize) ||
-                (orientation === "horizontal" && childIndex <= parent.y && parent.x + word.length - childIndex < this.gridSize - childIndex)
+                (orientation === "vertical" && childIndex <= parent.x && parent.x + word.length - childIndex <= this.gridSize) ||
+                (orientation === "horizontal" && childIndex <= parent.y && parent.y + word.length - childIndex <= this.gridSize)
             ) {
                 commonLetter = [parentIndex, childIndex];
                 // If a valid common letter was found, place the edge word on the grid
@@ -184,10 +186,10 @@ class Crossword {
             }
             if (orientation === "vertical") {
                 if (activeCell !== letter) {
-                    if (this.grid[x][y + 1] !== null) {
+                    if (y > 0 && this.grid[x][y - 1] !== null) {
                         return 0;
                     }
-                    if (y > 0 && this.grid[x][y - 1] !== null) {
+                    if (y + 1 < this.gridSize && this.grid[x][y + 1] !== null) {
                         return 0;
                     }
                 }
@@ -197,7 +199,7 @@ class Crossword {
                     }
                 }
                 if (count === word.length) {
-                    if (this.grid[x + 1][y] !== null) {
+                    if (x + 1 < this.gridSize && this.grid[x + 1][y] !== null) {
                         return 0;
                     }
                 }
@@ -207,7 +209,7 @@ class Crossword {
                     if (x > 0 && this.grid[x - 1][y] !== null) {
                         return 0;
                     }
-                    if (this.grid[x + 1][y] !== null) {
+                    if (x + 1 < this.gridSize && this.grid[x + 1][y] !== null) {
                         return 0;
                     }
                 }
@@ -217,7 +219,7 @@ class Crossword {
                     }
                 }
                 if (count === word.length) {
-                    if (this.grid[x][y + 1] !== null) {
+                    if (y + 1 < this.gridSize && this.grid[x][y + 1] !== null) {
                         return 0;
                     }
                 }
@@ -228,7 +230,7 @@ class Crossword {
         return score;
     }
 
-    render() {
+    renderGrid() {
         // Get the container element
         const container = document.getElementById("crossword");
 
@@ -263,15 +265,15 @@ class Crossword {
         }
     }
 
-    renderClues() {
+    setClues() {
         // Create an empty list of clues
-        let clues = [];
+        this.clues = [];
     
         // Iterate through the placed words
         for (const word of this.placedWords) {
             // Add the clue to the list of clues
-            clues.push({
-                number: clues.length + 1,
+            this.clues.push({
+                number: this.clues.length + 1,
                 clue: word.clue,
                 orientation: word.orientation === 'horizontal' ? 'across' : 'down',
                 answer: word.word
@@ -279,7 +281,7 @@ class Crossword {
         }
     
         // Sort the clues by orientation and number
-        clues.sort((a, b) => {
+        this.clues.sort((a, b) => {
             if (a.orientation === b.orientation) {
                 return a.number - b.number;
             } else if (a.orientation === "across") {
@@ -288,9 +290,18 @@ class Crossword {
                 return 1;
             }
         });
+    }
+    
+    renderClues() {
+        let clues = this.clues;
     
         // Create an HTML element to hold the clues
         const cluesElement = document.createElement("div");
+    
+        // Create a heading for the across clues
+        const acrossHeading = document.createElement("h2");
+        acrossHeading.innerText = "Across";
+        cluesElement.appendChild(acrossHeading);
     
         // Create a list of across clues
         const acrossCluesList = document.createElement("ol");
@@ -298,11 +309,16 @@ class Crossword {
         for (const clue of clues) {
             if (clue.orientation === "across") {
                 const clueElement = document.createElement("li");
-                clueElement.innerHTML = `${clue.number}. ${clue.clue} <span class="answer">${clue.answer}</span>`;
+                clueElement.innerHTML = `${clue.answer.length}. ${clue.clue} <span class="answer">${clue.answer}</span>`;
                 acrossCluesList.appendChild(clueElement);
             }
         }
         cluesElement.appendChild(acrossCluesList);
+    
+        // Create a heading for the down clues
+        const downHeading = document.createElement("h2");
+        downHeading.innerText = "Down";
+        cluesElement.appendChild(downHeading);
     
         // Create a list of down clues
         const downCluesList = document.createElement("ol");
@@ -310,12 +326,12 @@ class Crossword {
         for (const clue of clues) {
             if (clue.orientation === "down") {
                 const clueElement = document.createElement("li");
-                clueElement.innerHTML = `${clue.number}. ${clue.clue} <span class="answer">${clue.answer}</span>`;
+                clueElement.innerHTML = `${clue.answer.length}. ${clue.clue} <span class="answer">${clue.answer}</span>`;
                 downCluesList.appendChild(clueElement);
             }
         }
         cluesElement.appendChild(downCluesList);
     
         document.body.appendChild(cluesElement);
-    }
+    }    
 }
