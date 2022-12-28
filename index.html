@@ -12,7 +12,34 @@
       #file-input, #delete-button {
         display: inline-block;
       }
-    
+
+      #create-button {
+        display: inline-block;
+        background-color: green;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        font-size: 16px;
+      }      
+
+      #delete-button {
+        display: inline-block;
+        background-color: red;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        font-size: 16px;
+      }      
+
+      #import-button {
+        display: inline-block;
+        background-color: darkslategray;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        font-size: 16px;
+      }      
+
       #crossword-container {
         display: flex;
         flex-direction: row;
@@ -51,13 +78,17 @@
     </style>
   </head>
   <body>
-    <button id="delete">Delete</button>
-    <label for="file-input">Import:</label>
+    <button id="create-button">Create</button>
+    <button id="delete-button">Delete</button>
+    <button id="import-button">Import</button>
+    <label for="file-input"> or Upload:</label>
     <input type="file" id="file-input" name="file">    
+
     <div id="crossword-container">
       <div id="crossword"></div>
       <div id="clues"></div>
-    </div>    
+    </div> 
+
     <script src="main.js"></script>
   </body>
 </html>

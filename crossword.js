@@ -15,7 +15,9 @@ class Crossword {
         this.debug = false;
 
         // Call createCrossword method when creating a new Crossword instance
-        this.createCrossword();
+        if (this.availableWords) {
+            this.createCrossword();
+        }
     }
 
     createGraph() {
@@ -297,7 +299,10 @@ class Crossword {
     
         // Create an HTML element to hold the clues
         const cluesElement = document.getElementById("clues");
-            
+
+        // Clear the container element
+        cluesElement.innerHTML = "";
+
         // Create a heading for the across clues
         const acrossHeading = document.createElement("h2");
         acrossHeading.innerText = "Across";
