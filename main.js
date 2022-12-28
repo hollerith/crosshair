@@ -9,6 +9,7 @@ const retrieve = (db) => {
 
         // Get all clues from the object store
         const clues = [];
+                
         objectStore.openCursor().onsuccess = (event) => {
             const cursor = event.target.result;
             if (cursor) {
@@ -77,16 +78,19 @@ fileInput.addEventListener('change', (event) => {
         const lines = fileContents.replace(/"/g, '').split('\n').filter(line => line.trim() !== '');
 
         // Split the lines into an array of clues
-        const clues = lines.map((line) => {
+        lines.forEach((line) => {
             // Split each line into an array of values
             const values = line.split(',');
             // Extract the clue and answer from the array of values
             const clue = values[0];
             const answer = values.slice(1).join(',');
-            return {
-                id: clue,
-                text: answer,
-            };
+            // Check if the clue is already in the clues array
+            if (!clues.find(c => c.id === clue)) {
+                clues.push({
+                    id: clue,
+                    text: answer,
+                });
+            }
         });
 
         // Open an IndexedDB database
