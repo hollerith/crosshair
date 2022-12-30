@@ -3,6 +3,7 @@ class Word {
         this.word = word;
         this.clue = clue;
         this.length = word.length;
+        this.selected = false;
     }
 }
 
@@ -10,7 +11,7 @@ class Crossword {
     constructor(availableWords) {
         this.grid = [];
         this.gridSize = 16;
-        this.empty = "-";
+        this.reveal = false;
         this.availableWords = availableWords;
         this.debug = false;
 
@@ -18,6 +19,108 @@ class Crossword {
         if (this.availableWords.length) {
             this.createCrossword();
         }
+
+        //  T R I G G E R S 
+
+        // Get the crossword element
+        this.crosswordElement = document.querySelector("#crossword");
+
+        // Add an event listener to the crossword element
+        this.crosswordElement.addEventListener("dblclick", (event) => {
+            // Check if the event target is a cell element
+            if (event.target.classList.contains("crossword-cell")) {
+                // Get the data-cell attribute of the cell element
+                const cellData = event.target.getAttribute("data-cell");
+                // Parse the cell data
+                const cell = JSON.parse(cellData);
+                this.showModal(event, cell);
+            }
+        });
+
+        // Add an event listener to the crossword element
+        this.crosswordElement.addEventListener("click", (event) => {
+            // Check if the event target is a cell element
+            if (event.target.classList.contains("crossword-cell")) {
+                // Get the data-cell attribute of the cell element
+                const cellData = event.target.getAttribute("data-cell");
+                // Parse the cell data
+                const cell = JSON.parse(cellData);
+
+                const deselected = document.querySelectorAll(".selected");
+                if (deselected) {
+                    deselected.forEach((node) => {
+                        node.classList.remove('selected');
+                    })
+                }
+                const selected = document.querySelectorAll(`.clue-${cell.word.number}`);
+                selected.forEach((node) => {
+                    node.classList.add('selected');
+                });
+                event.target.classList.add('.selected');
+            }
+        });
+
+        // Get the clues element
+        this.cluesElement = document.querySelector("#clues");
+
+        // Add an event listener to the crossword element
+        this.cluesElement.addEventListener("click", (event) => {
+            // Check if the event target is a clue element
+            if (event.target.classList.contains("clue")) {
+                // Get the data-clue attribute of the clue element
+                const clueData = event.target.getAttribute("data-clue");
+
+                // Parse the cell data
+                const clue = JSON.parse(clueData);
+                console.log(clue);
+
+                const deselected = document.querySelectorAll(".selected");
+                if (deselected) {
+                    deselected.forEach((node) => {
+                        node.classList.remove('selected');
+                    })
+                }
+
+                const selected = document.querySelectorAll(`.clue-${clue.number}`);
+                selected.forEach((node) => {
+                    node.classList.add('selected');
+                });
+
+            }
+        });
+
+        document.getElementById('guess').addEventListener('blur', function () {
+            // Get the word from the input field
+            const guess = document.getElementById('guess').value;
+            console.log(guess);
+            document.getElementById('modal').style.display = 'none';
+        });
+
+    }
+
+    //  M E T H O D S
+
+    showModal(event, cell) {
+        // Display the modal
+        const width = (1.5 * cell.word.length) + 1
+        const guess = document.getElementById('guess');
+
+        guess.value = '';
+        guess.placeholder = '_'.repeat(cell.word.length);
+        guess.style.width = `${width}em`;
+
+        const modal = document.getElementById('modal');
+        modal.style.display = 'block';
+        modal.style.position = 'absolute';
+
+        if (event.clientX + modal.offsetWidth > (window.innerWidth * .666) || event.clientY + modal.offsetHeight > (window.innerHeight * .666) ) {
+            modal.style.top = event.clientY - 100  + 'px';
+            modal.style.left = event.clientX - 100 + 'px'; 
+        } else {
+            modal.style.top =  event.clientY + 50 + 'px';
+            modal.style.left = event.clientX + 50 + 'px'; 
+        }
+        guess.focus();
     }
 
     createGraph() {
@@ -95,8 +198,9 @@ class Crossword {
                 this.grid[0][i] = {
                     index: i,
                     letter: word.word[i],
-                    visible: true,
-                    word: word
+                    visible: this.reveal,
+                    word: word,
+                    twin: null
                 }
             }
         } else {
@@ -104,8 +208,9 @@ class Crossword {
                 this.grid[i][0] = {
                     index: i,
                     letter: word.word[i],
-                    visible: true,
-                    word: word
+                    visible: this.reveal,
+                    word: word,
+                    twin: null
                 };
             }
         }
@@ -161,12 +266,14 @@ class Crossword {
                                 this.grid[word.x + i][word.y] = {
                                     index: i,
                                     letter: word.word[i],
-                                    visible: true,
-                                    word: word
+                                    visible: this.reveal,
+                                    word: word,
+                                    twin: this.grid[word.x + i][word.y]
                                 };
                             }
                             return true;
                         }
+
                     } else {
                         word.x = parent.x + parentIndex;
                         word.y = parent.y - childIndex;
@@ -177,8 +284,9 @@ class Crossword {
                                 this.grid[word.x][word.y + i] = {
                                     index: i,
                                     letter: word.word[i],
-                                    visible: true,
-                                    word: word
+                                    visible: this.reveal,
+                                    word: word,
+                                    twin: this.grid[word.x][word.y + i]
                                 };
                             }
                             return true;
@@ -268,22 +376,29 @@ class Crossword {
                 // Create a cell element
                 const cellElement = document.createElement("span");
                 cellElement.classList.add("crossword-cell");
+                cellElement.setAttribute("data-cell", JSON.stringify(cell));
 
                 // Set the cell content and style based on whether it is an empty cell or not
                 if (cell) {
-                    if (cell.word && cell.index === 0) {
+                    if (cell.word && (cell.index === 0 || cell.twin?.index == 0)) {
                         // Create a superscript element for the number
                         const numberElement = document.createElement("sup");
-                        numberElement.textContent = cell.word.number;
-                        numberElement.style.position = "absolute";
-                        numberElement.style.top = "0";
-                        numberElement.style.left = "0";
-                        
+                        numberElement.textContent = cell.index == 0 ? cell.word.number : cell.twin.word.number;
+
                         // Add the number element to the cell element
                         cellElement.appendChild(numberElement);
                     }
-                    const letterNode = document.createTextNode(cell.letter);
-                    cellElement.appendChild(letterNode);
+                    if (cell.visible) {
+                        const letterNode = document.createTextNode(cell.letter);
+                        cellElement.appendChild(letterNode);
+                    }
+                    if (cell.word.selected) {
+                        cellElement.classList.add("selected");
+                    }
+                    cellElement.classList.add(`clue-${cell.word.number}`)
+                    if (cell.twin) {
+                        cellElement.classList.add(`clue-${cell.twin.word.number}`)
+                    }
                 } else {
                     cellElement.style.backgroundColor = "black";
                 }
@@ -301,6 +416,15 @@ class Crossword {
         // Create an empty list of clues
         this.clues = [];
 
+        // Sort the placed words by their coordinates
+        this.placedWords.sort((a, b) => {
+            if (a.x === b.x) {
+                return a.y - b.y;
+            } else {
+                return a.x - b.x;
+            }
+        });
+
         // Iterate through the placed words
         for (const word of this.placedWords) {
             // Add the clue to the list of clues
@@ -309,7 +433,7 @@ class Crossword {
                 number: word.number,
                 clue: word.clue,
                 orientation: word.orientation === 'horizontal' ? 'across' : 'down',
-                answer: word.word
+                word: word
             });
         }
 
@@ -340,12 +464,15 @@ class Crossword {
         cluesElement.appendChild(acrossHeading);
 
         // Create a list of across clues
-        const acrossCluesList = document.createElement("ol");
+        const acrossCluesList = document.createElement("ul");
         acrossCluesList.classList.add("across-clues");
         for (const clue of clues) {
             if (clue.orientation === "across") {
                 const clueElement = document.createElement("li");
-                clueElement.innerHTML = `${clue.clue} <span class="answer">${clue.answer}</span> (${clue.answer.length})`;
+                clueElement.innerHTML = `${clue.number}. ${clue.clue} (${clue.word.length})`;
+                clueElement.classList.add("clue");
+                clueElement.classList.add(`clue-${clue.number}`);
+                clueElement.setAttribute("data-clue", JSON.stringify(clue));
                 acrossCluesList.appendChild(clueElement);
             }
         }
@@ -357,12 +484,15 @@ class Crossword {
         cluesElement.appendChild(downHeading);
 
         // Create a list of down clues
-        const downCluesList = document.createElement("ol");
+        const downCluesList = document.createElement("ul");
         downCluesList.classList.add("down-clues");
         for (const clue of clues) {
             if (clue.orientation === "down") {
                 const clueElement = document.createElement("li");
-                clueElement.innerHTML = `${clue.clue} <span class="answer">${clue.answer}</span> (${clue.answer.length})`;
+                clueElement.innerHTML = `${clue.number}. ${clue.clue} (${clue.word.length})`;
+                clueElement.classList.add("clue")
+                clueElement.classList.add(`clue-${clue.number}`);
+                clueElement.setAttribute("data-clue", JSON.stringify(clue));
                 downCluesList.appendChild(clueElement);
             }
         }
@@ -373,7 +503,7 @@ class Crossword {
 
         this.setClues();
         this.renderClues();
-        this.renderGrid(); 
-        
+        this.renderGrid();
+
     }
 }

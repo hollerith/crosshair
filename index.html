@@ -71,9 +71,9 @@
 
       #crossword .crossword-cell sup {
         position: absolute;
-        top: 0;
-        left: 0;
         font-size: 0.5em;
+        top: 3px;
+        left: 3px;
       }      
 
       /* styles for the clues element go here */
@@ -82,10 +82,45 @@
         margin: 50px
       }
 
+      #clues ul {
+        list-style: none;
+      }
+      
       .answer {
         display: none;
       }
       
+      .selected {
+        background-color: pink;
+      }
+
+      li {
+        padding: .25em;
+      }
+
+      li.selected {
+        background-color: pink;
+      }
+
+      #modal {
+        /* Other styles for the input field */
+        border: solid 1px darkslategray;
+        border-radius: 1em; 
+        padding: 1em;
+        background-color: aliceblue;
+      }
+
+      #modal input {
+        padding: .5em;
+        letter-spacing: 1em;
+        text-transform: uppercase; 
+      }
+
+      #modal input::placeholder {
+        font-size: inherit;
+        letter-spacing: inherit;
+      }
+            
       @media only screen and (max-width: 480px) {
         /* Add your CSS rules for phones here */
       }
@@ -112,8 +147,10 @@
     <div id="crossword-container">
       <div id="crossword"></div>
       <div id="clues"></div>
+      <div id="modal" style="display:none">
+          <input type="text" id="guess" placeholder="_ _ _ _ _">
+      </div>  
     </div> 
-
     <script src="main.js"></script>
   </body>
 </html>
