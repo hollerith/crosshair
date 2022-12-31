@@ -26,15 +26,26 @@ class Crossword {
         this.crosswordElement = document.querySelector("#crossword");
 
         // Add an event listener to the crossword element
-        this.crosswordElement.addEventListener("dblclick", (event) => {
+        this.crosswordElement.addEventListener("input", (event) => {
             // Check if the event target is a cell element
-            if (event.target.classList.contains("crossword-cell")) {
-                // Get the data-cell attribute of the cell element
-                const cellData = event.target.getAttribute("data-cell");
-                // Parse the cell data
-                const cell = JSON.parse(cellData);
-                this.showModal(event, cell);
+            const cellData = event.target.parentElement.getAttribute("data-cell");
+            const cell = JSON.parse(cellData);
+
+            const textNode = event.target.firstChild;
+            textNode.textContent = event.data;
+
+            // Limit the length of the text node to 1 character
+            if (textNode.textContent.length > 1) {
+                textNode.textContent = textNode.textContent.slice(0, 1);
             }
+            let next = (cell.index + 1 + cell.word.length) % cell.word.length;
+            let input = document.querySelectorAll(`.clue-${cell.word.number}.selected span`)[cell.index+1];
+            if (!input) {
+                next = (cell.twin.index + 1 + cell.twin.word.length) % cell.twin.word.length;
+                input = document.querySelectorAll(`.clue-${cell.twin.word.number}.selected span`)[next];
+            }
+            input.focus();
+
         });
 
         // Add an event listener to the crossword element
@@ -113,12 +124,12 @@ class Crossword {
         modal.style.display = 'block';
         modal.style.position = 'absolute';
 
-        if (event.clientX + modal.offsetWidth > (window.innerWidth * .666) || event.clientY + modal.offsetHeight > (window.innerHeight * .666) ) {
-            modal.style.top = event.clientY - 100  + 'px';
-            modal.style.left = event.clientX - 100 + 'px'; 
+        if (event.clientX + modal.offsetWidth > (window.innerWidth * .666) || event.clientY + modal.offsetHeight > (window.innerHeight * .666)) {
+            modal.style.top = event.clientY - 100 + 'px';
+            modal.style.left = event.clientX - 100 + 'px';
         } else {
-            modal.style.top =  event.clientY + 50 + 'px';
-            modal.style.left = event.clientX + 50 + 'px'; 
+            modal.style.top = event.clientY + 50 + 'px';
+            modal.style.left = event.clientX + 50 + 'px';
         }
         guess.focus();
     }
@@ -384,6 +395,7 @@ class Crossword {
                         // Create a superscript element for the number
                         const numberElement = document.createElement("sup");
                         numberElement.textContent = cell.index == 0 ? cell.word.number : cell.twin.word.number;
+                        numberElement.contentEditable = false;
 
                         // Add the number element to the cell element
                         cellElement.appendChild(numberElement);
@@ -391,6 +403,10 @@ class Crossword {
                     if (cell.visible) {
                         const letterNode = document.createTextNode(cell.letter);
                         cellElement.appendChild(letterNode);
+                    } else {
+                        const editNode = document.createElement('span');
+                        editNode.contentEditable = true;
+                        cellElement.appendChild(editNode);
                     }
                     if (cell.word.selected) {
                         cellElement.classList.add("selected");

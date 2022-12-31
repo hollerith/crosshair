@@ -120,6 +120,11 @@
         font-size: inherit;
         letter-spacing: inherit;
       }
+      
+      span:focus {
+        outline: 1px solid rgba(255, 0, 0, 0.0); /* Turn off outline without killing the caret */
+        text-transform: uppercase; 
+      }
             
       @media only screen and (max-width: 480px) {
         /* Add your CSS rules for phones here */
