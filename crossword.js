@@ -41,8 +41,8 @@ class Crossword {
 
             let next, number, selected
             if (cell.index + 1 === cell.word.length){
-                number = cell.word.number + 1
                 next = 0;
+                number = cell.word.number + 1
                 selected = '';
             } else {
                 next = cell.index + 1;
