@@ -28,7 +28,7 @@ class Crossword {
         // Add an event listener to the crossword element
         this.crosswordElement.addEventListener("input", (event) => {
             // Check if the event target is a cell element
-            const cellData = event.target.parentElement.getAttribute("data-cell");
+            const cellData = event.target.parentElement.getAttribute("data-clue");
             const cell = JSON.parse(cellData);
 
             const textNode = event.target.firstChild;
@@ -52,59 +52,28 @@ class Crossword {
             let input = document.querySelectorAll(`.clue-${number}${selected} span`)[next];
             if (!input) {
                 next = (cell.twin.index + 1 + cell.twin.word.length) % cell.twin.word.length;
-                input = document.querySelectorAll(`.clue-${cell.twin.word.number}.selected span`)[next];
+                input = document.querySelectorAll(`.clue-${cell.twin.word.number}${selected} span`)[next];
             }
             input.focus();
+            this.getFocus(input.parentElement);
         });
 
         // Add an event listener to the crossword element
         this.crosswordElement.addEventListener("click", (event) => {
             // Check if the event target is a cell element
             if (event.target.classList.contains("crossword-cell")) {
-                // Get the data-cell attribute of the cell element
-                const cellData = event.target.getAttribute("data-cell");
-                // Parse the cell data
-                const cell = JSON.parse(cellData);
-
-                const deselected = document.querySelectorAll(".selected");
-                if (deselected) {
-                    deselected.forEach((node) => {
-                        node.classList.remove('selected');
-                    })
-                }
-                const selected = document.querySelectorAll(`.clue-${cell.word.number}`);
-                selected.forEach((node) => {
-                    node.classList.add('selected');
-                });
+                this.getFocus(event.target);
             }
         });
 
         // Get the clues element
         this.cluesElement = document.querySelector("#clues");
 
-        // Add an event listener to the crossword element
+        // Add an event listener to the clue element
         this.cluesElement.addEventListener("click", (event) => {
             // Check if the event target is a clue element
             if (event.target.classList.contains("clue")) {
-                // Get the data-clue attribute of the clue element
-                const clueData = event.target.getAttribute("data-clue");
-
-                // Parse the cell data
-                const clue = JSON.parse(clueData);
-                console.log(clue);
-
-                const deselected = document.querySelectorAll(".selected");
-                if (deselected) {
-                    deselected.forEach((node) => {
-                        node.classList.remove('selected');
-                    })
-                }
-
-                const selected = document.querySelectorAll(`.clue-${clue.number}`);
-                selected.forEach((node) => {
-                    node.classList.add('selected');
-                });
-
+                this.getFocus(event.target);
             }
         });
 
@@ -118,6 +87,26 @@ class Crossword {
     }
 
     //  M E T H O D S
+
+    getFocus(target) {
+
+        // Get the data-clue attribute of the cell element
+        const cellData = target.getAttribute("data-clue");
+        // Parse the cell data
+        const cell = JSON.parse(cellData);
+
+        const deselected = document.querySelectorAll(".selected");
+        if (deselected) {
+            deselected.forEach((node) => {
+                node.classList.remove('selected');
+            })
+        }
+        const selected = document.querySelectorAll(`.clue-${cell.word.number}`);
+        selected.forEach((node) => {
+            node.classList.add('selected');
+        });
+
+    }
 
     showModal(event, cell) {
         // Display the modal
@@ -395,7 +384,7 @@ class Crossword {
                 // Create a cell element
                 const cellElement = document.createElement("span");
                 cellElement.classList.add("crossword-cell");
-                cellElement.setAttribute("data-cell", JSON.stringify(cell));
+                cellElement.setAttribute("data-clue", JSON.stringify(cell));
 
                 // Set the cell content and style based on whether it is an empty cell or not
                 if (cell) {
