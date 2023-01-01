@@ -38,14 +38,23 @@ class Crossword {
             if (textNode.textContent.length > 1) {
                 textNode.textContent = textNode.textContent.slice(0, 1);
             }
-            let next = (cell.index + 1 + cell.word.length) % cell.word.length;
-            let input = document.querySelectorAll(`.clue-${cell.word.number}.selected span`)[cell.index+1];
+
+            let next, number, selected
+            if (cell.index + 1 === cell.word.length){
+                number = cell.word.number + 1
+                next = 0;
+                selected = '';
+            } else {
+                next = cell.index + 1;
+                number = cell.word.number
+                selected = '.selected'
+            }
+            let input = document.querySelectorAll(`.clue-${number}${selected} span`)[next];
             if (!input) {
                 next = (cell.twin.index + 1 + cell.twin.word.length) % cell.twin.word.length;
                 input = document.querySelectorAll(`.clue-${cell.twin.word.number}.selected span`)[next];
             }
             input.focus();
-
         });
 
         // Add an event listener to the crossword element
@@ -67,7 +76,6 @@ class Crossword {
                 selected.forEach((node) => {
                     node.classList.add('selected');
                 });
-                event.target.classList.add('.selected');
             }
         });
 
