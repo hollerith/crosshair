@@ -39,23 +39,20 @@ class Crossword {
                 textNode.textContent = textNode.textContent.slice(0, 1);
             }
 
-            let next, number, selected
-            if (cell.index + 1 === cell.word.length){
-                next = 0;
-                number = cell.word.number + 1
-                selected = '';
+            if (cell.index + 1 !== cell.word.length){
+                let input = document.querySelectorAll(`.clue-${cell.word.number}.selected span`)[cell.index + 1];
+                if (!input) {
+                    input = document.querySelectorAll(`.clue-${cell.twin.word.number}.selected span`)[cell.twin.index + 1];
+                }
+                input.focus();    
             } else {
-                next = cell.index + 1;
-                number = cell.word.number
-                selected = '.selected'
+                let input = document.querySelectorAll(`.clue-${cell.word.number + 1} span`)[0];
+                if (!input) {
+                    input = document.querySelectorAll(`.clue-${cell.twin.word.number} span`)[0];
+                }
+                input.focus();
+                this.getFocus(input.parentElement);
             }
-            let input = document.querySelectorAll(`.clue-${number}${selected} span`)[next];
-            if (!input) {
-                next = (cell.twin.index + 1 + cell.twin.word.length) % cell.twin.word.length;
-                input = document.querySelectorAll(`.clue-${cell.twin.word.number}${selected} span`)[next];
-            }
-            input.focus();
-            this.getFocus(input.parentElement);
         });
 
         // Add an event listener to the crossword element
@@ -106,6 +103,7 @@ class Crossword {
             node.classList.add('selected');
         });
 
+        document.querySelector(`.clue-${cell.word.number} span`).focus();
     }
 
     showModal(event, cell) {
@@ -186,8 +184,15 @@ class Crossword {
 
         this.createGrid();
 
-        // Place the first word in the grid
-        const firstWord = this.availableWords[0];
+        // Filter the availableWords array to get all the words with the maximum length
+        const longestWords = this.availableWords.filter(word => word.length === Math.max(...this.availableWords.map(word => word.length)));
+
+        // Generate a random index between 0 and the length of the longestWords array
+        const randomIndex = Math.floor(Math.random() * longestWords.length);
+
+        // Select a random word from the longestWords array
+        const firstWord = longestWords[randomIndex];
+
         this.placeFirstWord(firstWord);
         this.addWordsToGrid(firstWord);
 
@@ -445,7 +450,7 @@ class Crossword {
             this.clues.push({
                 number: word.number,
                 clue: word.clue,
-                orientation: word.orientation === 'horizontal' ? 'across' : 'down',
+                orientation: word.orientation,
                 word: word
             });
         }
@@ -454,7 +459,7 @@ class Crossword {
         this.clues.sort((a, b) => {
             if (a.orientation === b.orientation) {
                 return a.number - b.number;
-            } else if (a.orientation === "across") {
+            } else if (a.orientation === "horizontal") {
                 return -1;
             } else {
                 return 1;
@@ -480,7 +485,7 @@ class Crossword {
         const acrossCluesList = document.createElement("ul");
         acrossCluesList.classList.add("across-clues");
         for (const clue of clues) {
-            if (clue.orientation === "across") {
+            if (clue.orientation === "horizontal") {
                 const clueElement = document.createElement("li");
                 clueElement.innerHTML = `${clue.number}. ${clue.clue} (${clue.word.length})`;
                 clueElement.classList.add("clue");
@@ -500,7 +505,7 @@ class Crossword {
         const downCluesList = document.createElement("ul");
         downCluesList.classList.add("down-clues");
         for (const clue of clues) {
-            if (clue.orientation === "down") {
+            if (clue.orientation === "vertical") {
                 const clueElement = document.createElement("li");
                 clueElement.innerHTML = `${clue.number}. ${clue.clue} (${clue.word.length})`;
                 clueElement.classList.add("clue")

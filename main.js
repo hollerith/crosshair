@@ -63,6 +63,92 @@ createButton.addEventListener('click', () => {
     };
 });
 
+// Delete database button
+const deleteButton = document.querySelector('#delete-button');
+
+deleteButton.addEventListener('click', () => {
+    // Open an IndexedDB database
+    const request = window.indexedDB.open('clues_database', 1);
+
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        db.close();
+        // Delete the database
+        window.indexedDB.deleteDatabase('clues_database');
+
+        document.querySelector("#crossword").innerHTML = '';
+        document.querySelector("#clues").innerHTML = '';
+        console.log('Cleared database');
+    };
+});
+
+// Import database button
+const importButton = document.querySelector('#import-button');
+
+importButton.addEventListener('click', async () => {
+    // Import clues 
+    await fetch('https://cryptics.georgeho.org/data/clues.csv?_size=max')
+        .then(response => response.text())
+        .then(text => {
+            // Split the text by newline characters to get an array of rows
+            const rows = text.split('\n').slice(1);
+
+            // Iterate over the rows and split them by comma to get an array of cells
+            rows.forEach(row => {
+                const regex = /^[^,]*,\s*(?:"([^"]*)"|([^",]*))\s*,\s*([^,]*)/;
+                const match = regex.exec(row);
+                if (match) {
+                    // Remove the quoted parts and number of letters from the clue
+                    const clue = match[1] || match[2];
+
+                    // Add the clue and answer 
+                    clues.push({
+                        id: match[3].replace(/[^A-Za-z]/g, ''),
+                        text: clue.replace(/\(\d+\)/, '')
+                    });
+                }
+            });
+            return clues;
+        }).then(clues => {
+            // Filter out clues with an id longer than 16 letters
+            const filteredClues = clues.filter(word => word.id.length < 16);
+
+            // Use a Map to store the clues to remove duplicates
+            const cluesMap = new Map();
+            filteredClues.forEach(word => {
+                cluesMap.set(word.id, word.text);
+            });
+
+            // Convert the Map to an array
+            const uniqueClues = [...cluesMap];
+
+            const request = window.indexedDB.open('clues_database', 1);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                // Check if the object store exists
+                if (!db.objectStoreNames.contains('clues')) {
+                    // The object store does not exist, so you need to create it
+                    db.createObjectStore('clues', { keyPath: 'id' }); 
+                }
+            };            
+
+            request.onsuccess = (event) => {
+                const db = event.target.result;
+                const transaction = db.transaction(['clues'], 'readwrite');
+                const objectStore = transaction.objectStore('clues');
+                objectStore.clear();
+                uniqueClues.forEach(([id, text]) => {
+                    objectStore.add({ id: id, text: text });
+                });
+                // Use the getAll() method to get all the clues from the object store
+                const getAllRequest = objectStore.getAll();
+                getAllRequest.onsuccess = (event) => {
+                    console.log(event.target.result);
+                };
+            };
+        });
+});
 
 const fileInput = document.querySelector('#file-input');
 
@@ -122,66 +208,3 @@ fileInput.addEventListener('change', (event) => {
 
     reader.readAsText(file);
 });
-
-// Delete database button
-const deleteButton = document.querySelector('#delete-button');
-
-deleteButton.addEventListener('click', () => {
-    // Open an IndexedDB database
-    const request = window.indexedDB.open('clues_database', 1);
-
-    request.onsuccess = (event) => {
-        const db = event.target.result;
-        db.close();
-        // Delete the database
-        window.indexedDB.deleteDatabase('clues_database');
-        console.log('Cleared database');
-    };
-});
-
-// Import database button
-const importButton = document.querySelector('#import-button');
-
-importButton.addEventListener('click', async () => {
-    // Import clues 
-    await fetch('https://cryptics.georgeho.org/data/clues.csv?_size=max')
-        .then(response => response.text())
-        .then(text => {
-            // Split the text by newline characters to get an array of rows
-            const rows = text.split('\n').slice(1);
-
-            // Iterate over the rows and split them by comma to get an array of cells
-            rows.forEach(row => {
-                const regex = /^[^,]*,\s*(?:"([^"]*)"|([^",]*))\s*,\s*([^,]*)/;
-                const match = regex.exec(row);
-                if (match) {
-                    // Remove the quoted parts and number of letters from the clue
-                    const clue = match[1] || match[2];
-
-                    // Add the clue and answer 
-                    clues.push({
-                        id: clue.replace(/\(\d+\)/, ''),
-                        text: match[3]
-                    });
-                }
-            });
-            return clues;
-        }).then(clues => {
-            const request = window.indexedDB.open('clues_database', 1);
-            request.onsuccess = (event) => {
-                const db = event.target.result;
-                const transaction = db.transaction(['clues'], 'readwrite');
-                const objectStore = transaction.objectStore('clues');
-                objectStore.clear();
-                clues.forEach((word) => {
-                    objectStore.add({ id: word.answer, text: word.clue });
-                });
-                // Use the getAll() method to get all the clues from the object store
-                const getAllRequest = objectStore.getAll();
-                getAllRequest.onsuccess = (event) => {
-                    console.log(event.target.result);
-                };
-            };
-        });
-});
-
