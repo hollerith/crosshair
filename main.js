@@ -52,9 +52,6 @@ createButton.addEventListener('click', () => {
         if (!db.objectStoreNames.contains('clues')) {
             // The object store does not exist, so you need to create it
             const objectStore = db.createObjectStore('clues', { keyPath: 'id' });
-            clues.forEach((word) => {
-                objectStore.add({ id: word.id, text: word.text });
-            });
         }
     };
 

@@ -27,32 +27,15 @@ class Crossword {
 
         // Add an event listener to the crossword element
         this.crosswordElement.addEventListener("input", (event) => {
-            // Check if the event target is a cell element
-            const cellData = event.target.parentElement.getAttribute("data-clue");
-            const cell = JSON.parse(cellData);
-
             const textNode = event.target.firstChild;
-            textNode.textContent = event.data;
+            textNode.textContent = event.data || '';
 
             // Limit the length of the text node to 1 character
             if (textNode.textContent.length > 1) {
                 textNode.textContent = textNode.textContent.slice(0, 1);
             }
 
-            if (cell.index + 1 !== cell.word.length){
-                let input = document.querySelectorAll(`.clue-${cell.word.number}.selected span`)[cell.index + 1];
-                if (!input) {
-                    input = document.querySelectorAll(`.clue-${cell.twin.word.number}.selected span`)[cell.twin.index + 1];
-                }
-                input.focus();    
-            } else {
-                let input = document.querySelectorAll(`.clue-${cell.word.number + 1} span`)[0];
-                if (!input) {
-                    input = document.querySelectorAll(`.clue-${cell.twin.word.number} span`)[0];
-                }
-                input.focus();
-                this.getFocus(input.parentElement);
-            }
+            this.nextField(event);
         });
 
         // Add an event listener to the crossword element
@@ -84,6 +67,21 @@ class Crossword {
     }
 
     //  M E T H O D S
+    nextField(event) {
+        const cellData = document.querySelector(`li.selected`).getAttribute('data-clue');
+        const cell = JSON.parse(cellData);
+        const currentClue = this.clues.findIndex(clue => clue.word.number === cell.word.number);
+
+        const selected = Array.from(document.querySelectorAll(`:not(li).selected span`));
+        const index = selected.indexOf(event.target);
+ 
+        if (event.target === selected[selected.length - 1]) {
+            const nextClue = this.clues[(currentClue + 1) % this.clues.length];
+            this.getFocus(document.querySelector(`.${this.keyOf(nextClue.word)}`));
+        } else {
+            selected[index + 1].focus();
+        }
+    }
 
     getFocus(target) {
 
@@ -98,12 +96,16 @@ class Crossword {
                 node.classList.remove('selected');
             })
         }
-        const selected = document.querySelectorAll(`.clue-${cell.word.number}`);
+        const selected = document.querySelectorAll(`.${this.keyOf(cell.word)}`);
         selected.forEach((node) => {
             node.classList.add('selected');
         });
 
-        document.querySelector(`.clue-${cell.word.number} span`).focus();
+        document.querySelector(`.${this.keyOf(cell.word)} span`).focus();
+    }
+
+    keyOf(word) {
+        return `clue-${word.number}${word.orientation[0]}`
     }
 
     showModal(event, cell) {
@@ -201,12 +203,12 @@ class Crossword {
 
     placeFirstWord(word) {
         // Set the initial word on the grid in a random orientation
-        const orientation = Math.random() > 0.5 ? "horizontal" : "vertical";
+        const orientation = Math.random() > 0.5 ? "across" : "down";
         word.x = 0;
         word.y = 0;
         word.orientation = orientation;
 
-        if (orientation === "horizontal") {
+        if (orientation === "across") {
             for (let i = 0; i < word.length; i++) {
                 this.grid[0][i] = {
                     index: i,
@@ -227,7 +229,8 @@ class Crossword {
                 };
             }
         }
-        this.placedWords = [this.availableWords.shift()];
+        this.placedWords = [word];
+        this.availableWords = this.availableWords.filter(availableWord => availableWord !== word);
     }
 
     addWordsToGrid(parent) {
@@ -251,7 +254,7 @@ class Crossword {
     placeNextWord(edge, parent) {
         // Find a common letter that satisfies the placement criteria
         const word = edge[0];
-        const orientation = parent.orientation === "horizontal" ? "vertical" : "horizontal";
+        const orientation = parent.orientation === "across" ? "down" : "across";
         let commonLetter = null;
 
         // Check if the word has already been placed on the grid
@@ -261,15 +264,15 @@ class Crossword {
 
         for (const [parentIndex, childIndex] of edge[1]) {
             if (
-                (orientation === "vertical" && childIndex <= parent.x && parent.x + word.length - childIndex <= this.gridSize) ||
-                (orientation === "horizontal" && childIndex <= parent.y && parent.y + word.length - childIndex <= this.gridSize)
+                (orientation === "down" && childIndex <= parent.x && parent.x + word.length - childIndex <= this.gridSize) ||
+                (orientation === "across" && childIndex <= parent.y && parent.y + word.length - childIndex <= this.gridSize)
             ) {
                 commonLetter = [parentIndex, childIndex];
                 // If a valid common letter was found, place the edge word on the grid
                 if (commonLetter) {
                     word.orientation = orientation;
 
-                    if (orientation === "vertical") {
+                    if (orientation === "down") {
                         word.x = parent.x - childIndex;
                         word.y = parent.y + parentIndex;
 
@@ -313,9 +316,6 @@ class Crossword {
 
     hasGap(word, x, y, orientation) {
         let count = 1, score = 1;
-        if (this.debug == word.word) {
-            debugger
-        }
 
         for (const letter of word.word) {
             const activeCell = this.grid[x][y] ? this.grid[x][y].letter : null;
@@ -325,7 +325,7 @@ class Crossword {
             if (activeCell === letter) {
                 score++;
             }
-            if (orientation === "vertical") {
+            if (orientation === "down") {
                 if (activeCell !== letter) {
                     if (y > 0 && this.grid[x][y - 1] !== null) {
                         return 0;
@@ -413,9 +413,9 @@ class Crossword {
                     if (cell.word.selected) {
                         cellElement.classList.add("selected");
                     }
-                    cellElement.classList.add(`clue-${cell.word.number}`)
+                    cellElement.classList.add(`${this.keyOf(cell.word)}`)
                     if (cell.twin) {
-                        cellElement.classList.add(`clue-${cell.twin.word.number}`)
+                        cellElement.classList.add(`${this.keyOf(cell.twin.word)}`)
                     }
                 } else {
                     cellElement.style.backgroundColor = "black";
@@ -444,9 +444,20 @@ class Crossword {
         });
 
         // Iterate through the placed words
+        let number = 1;
         for (const word of this.placedWords) {
+            // Check if the previous word has the same x,y coordinates
+            const prevWord = this.clues[this.clues.length - 1];
+            if (prevWord && prevWord.word.x === word.x && prevWord.word.y === word.y) {
+                // If the previous word has the same coordinates, use the same number for this word
+                word.number = prevWord.number;
+            } else {
+                // Otherwise, use the next number in the sequence
+                word.number = number;
+                number++;
+            }
+
             // Add the clue to the list of clues
-            word.number = this.clues.length + 1
             this.clues.push({
                 number: word.number,
                 clue: word.clue,
@@ -459,7 +470,7 @@ class Crossword {
         this.clues.sort((a, b) => {
             if (a.orientation === b.orientation) {
                 return a.number - b.number;
-            } else if (a.orientation === "horizontal") {
+            } else if (a.orientation === "across") {
                 return -1;
             } else {
                 return 1;
@@ -485,11 +496,11 @@ class Crossword {
         const acrossCluesList = document.createElement("ul");
         acrossCluesList.classList.add("across-clues");
         for (const clue of clues) {
-            if (clue.orientation === "horizontal") {
+            if (clue.orientation === "across") {
                 const clueElement = document.createElement("li");
                 clueElement.innerHTML = `${clue.number}. ${clue.clue} (${clue.word.length})`;
                 clueElement.classList.add("clue");
-                clueElement.classList.add(`clue-${clue.number}`);
+                clueElement.classList.add(`${this.keyOf(clue.word)}`);
                 clueElement.setAttribute("data-clue", JSON.stringify(clue));
                 acrossCluesList.appendChild(clueElement);
             }
@@ -505,11 +516,11 @@ class Crossword {
         const downCluesList = document.createElement("ul");
         downCluesList.classList.add("down-clues");
         for (const clue of clues) {
-            if (clue.orientation === "vertical") {
+            if (clue.orientation === "down") {
                 const clueElement = document.createElement("li");
                 clueElement.innerHTML = `${clue.number}. ${clue.clue} (${clue.word.length})`;
                 clueElement.classList.add("clue")
-                clueElement.classList.add(`clue-${clue.number}`);
+                clueElement.classList.add(`${this.keyOf(clue.word)}`);
                 clueElement.setAttribute("data-clue", JSON.stringify(clue));
                 downCluesList.appendChild(clueElement);
             }
